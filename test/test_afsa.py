@@ -23,5 +23,33 @@ class TestAFSA(TestCase):
         random.random = Mock(return_value=0.2)
 
         self.afsa.fish = [np.array(0.1)]
-        self.afsa.swimming(0)
+        self.afsa.swim(0)
         self.assertEqual(0.1 + 0.6 * 0.2, self.afsa.fish[0])
+
+    def test_find_nearby_fish_in_vision(self):
+        self.afsa.fish = np.array([
+            np.array(0.2),
+            np.array(0.1),
+            np.array(0.0),
+            np.array(0.1),
+            np.array(0.2),
+            np.array(0.3)])
+        self.afsa.vision = 0.3
+
+        fishes_in_range = self.afsa.find_nearby_fish_in_vision(2)
+        np.testing.assert_array_equal(np.array([0, 1, 3, 4]), fishes_in_range)
+
+    def test_find_nearby_fish_in_vision_multidim(self):
+        self.afsa.fish = np.array([
+            np.array([0.2, 0.2]),
+            np.array([0.1, 0.1]),
+            np.array([0.0, 0.0]),
+            np.array([0.1, 0.1]),
+            np.array([0.2, 0.2]),
+            np.array([0.3, 0.3])
+        ])
+        self.afsa.vision = 0.3
+        self.afsa.dimensions = 3
+        
+        fishes_in_range = self.afsa.find_nearby_fish_in_vision(2)
+        np.testing.assert_array_equal(np.array([0, 1, 3, 4]), fishes_in_range)
