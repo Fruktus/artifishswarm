@@ -53,6 +53,8 @@ class AFSA:
         """
         for _ in range(self.search_retries):
             target_x = self.fish[fish_idx] + self.vision * random.random()
+            # originally the random is between <0,1) but it may be worth exploring
+            # how it behaves when allowed the range <-1,1>
 
             if self.func(target_x) > self.func(fish_idx):
                 self.make_step(fish_idx, target_x)
@@ -184,3 +186,5 @@ class AFSA:
             for fish_idx in range(self.population):
                 self.swarm(fish_idx)
                 self.follow(fish_idx)
+
+        return self.fish  # TODO verify whether this is the proper way to return solution
