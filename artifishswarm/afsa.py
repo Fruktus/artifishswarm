@@ -96,7 +96,25 @@ class AFSA:
         :param fish_idx: the index of fish which performs the follow behavior
         :return:
         """
-        pass
+        own_y = self.func(self.fish[fish_idx])
+
+        fish_in_vision_idx = self.find_nearby_fish_in_vision(fish_idx)
+        fish_in_vision_x = np.take(self.fish, fish_in_vision_idx)
+        fish_in_vision_y = [self.func(x) for x in fish_in_vision_x]
+        is_overcrowded = len(fish_in_vision_idx)/self.population > self.crowding_factor
+
+        best = own_y
+        best_idx = fish_idx
+        for food_idx in range(len(fish_in_vision_y)):
+            if fish_in_vision_y[food_idx] > best:
+                best = fish_in_vision_y[food_idx]
+                best_idx = food_idx
+
+        if best_idx != fish_idx and not is_overcrowded:
+            self.make_step(fish_idx, fish_in_vision_x[best_idx])
+        else:
+            self.search(fish_idx)
+
 
     def leap(self, fish_idx: int):
         """

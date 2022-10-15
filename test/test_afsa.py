@@ -105,3 +105,21 @@ class TestAFSA(TestCase):
 
         self.afsa.make_step.assert_not_called()
         self.afsa.search.assert_called_with(0)
+
+    def test_follow(self):
+        self.afsa.make_step = Mock()
+        self.afsa.search = Mock()
+        self.afsa.fish = np.array([
+            np.array([0.1]),
+            np.array([0.1]),
+            np.array([0.1]),
+            np.array([0.3])
+        ])
+        self.afsa.vision = 0.4
+        self.afsa.func = lambda x: 2 * x
+        self.afsa.population = len(self.afsa.fish)
+
+        self.afsa.follow(0)
+
+        self.afsa.make_step.assert_called_once_with(0, 0.3)
+        self.afsa.search.assert_not_called()
