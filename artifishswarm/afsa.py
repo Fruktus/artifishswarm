@@ -72,7 +72,19 @@ class AFSA:
         :param fish_idx: the index of fish which performs the swarm behavior
         :return:
         """
-        pass
+
+        fish_in_vision_idx = self.find_nearby_fish_in_vision(fish_idx)
+        fish_in_vision_x = np.take(self.fish, fish_in_vision_idx)
+        x_center = np.mean(fish_in_vision_x)
+        y_center = self.func(x_center)
+
+        is_center_better = y_center > self.func(self.fish[fish_idx])
+        is_overcrowded = len(fish_in_vision_idx)/self.population > self.crowding_factor
+
+        if is_center_better and not is_overcrowded:
+            self.make_step(fish_idx, x_center)
+        else:
+            self.search(fish_idx)
 
     def follow(self, fish_idx: int):
         """
@@ -121,7 +133,7 @@ class AFSA:
 
         return np.where(fish_distances < self.vision)[0]
 
-    def make_step(self, fish_idx: int, destination_x: float):
+    def make_step(self, fish_idx: int, destination_x: ArrayLike):
         """
         Moves the fish towards the distance (in place), takes the modifiers into account.
 
@@ -132,7 +144,7 @@ class AFSA:
         current_x = self.fish[fish_idx]
 
         new_x = self.fish[fish_idx] + ((destination_x - current_x)/np.linalg.norm(destination_x - current_x)) \
-                * self.step * random.random()  # TODO bottom part should be the vector length
+            * self.step * random.random()
 
         self.fish[fish_idx] = new_x
 
