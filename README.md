@@ -3,7 +3,7 @@ A python implementation of Ariticial Fish Swarm Algorithm (AFSA), based on Nesha
 
 
 ## Installation
-```pip install -r requirements.txt```
+```pip install .```
 
 ## Running
 TODO
