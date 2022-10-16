@@ -6,12 +6,12 @@ from artifishswarm import AFSA
 
 
 def func(x):  # sample function to test the fishies behavior
-    return -(x ** 2)
+    return -(x[0] ** 2)
 
 
 def main():
     afsa = AFSA(func=func,
-                dimensions=2,  # our function takes one value and returns one value
+                dimensions=1,  # our function takes one value and returns one value
                 population=50,  # other parameters chosen empirically
                 max_iterations=20,
                 vision=0.5,
@@ -23,8 +23,12 @@ def main():
 
     res = afsa.run()
 
-    fig1 = px.line(x=np.arange(-2.0, 3.0, 0.1), y=[func(x) for x in np.arange(-2.0, 3.0, 0.1)])
-    fig2 = px.scatter(x=res, y=[func(x) for x in res])
+    x_data = np.arange(-2.0, 3.0, 0.1).reshape((-1, 1))
+    fig1 = px.line(
+        x=x_data.reshape(-1),
+        y=[func(x) for x in x_data],
+    )
+    fig2 = px.scatter(x=res.reshape(-1), y=[func(x) for x in res])
     fig2.update_traces(marker=dict(color='red'))
 
     fig3 = go.Figure(data=fig1.data + fig2.data)

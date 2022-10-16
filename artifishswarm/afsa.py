@@ -10,13 +10,15 @@ class AFSA:
     y - the value that optimised function self.func takes for given x
     """
 
-    def __init__(self, func, dimensions: int, population: int, max_iterations: int, vision: float, crowding_factor: float, step: float,
+    def __init__(self, func, dimensions: int, population: int,
+                 max_iterations: int, vision: float,
+                 crowding_factor: float, step: float,
                  search_retries: int, rand_seed=None):
         """
         Initialization of artificial fish swarm algorithm.
 
-        :param func: The optimisation function
-        :param dimensions: the dimensionality of the function, dim(x) = dimensions-1, dim(y) = 1
+        :param func: the function to be optimized
+        :param dimensions: the dimensionality of the domain, i.e. dim(x)
         :param population: total number of artifish
         :param max_iterations: how many iterations can be made at most while searching for optimum
         :param vision: the distance that the fish examines during optimisation
@@ -26,9 +28,26 @@ class AFSA:
         :param search_retries: how many times will the fish search for the food during search behavior
         :param rand_seed: seed for the random number generator
         """
+        if not callable(func):
+            raise TypeError('func is not callable')
+
         self.rng = np.random.RandomState(rand_seed)
 
-        self.func = func
+        def func_safe(x):
+            if not hasattr(x, 'shape'):
+                raise TypeError(f'x is not an array {x}')
+            if len(x.shape) != 1:
+                raise ValueError(f'x has more than 1 axis {x}')
+            if x.shape != (self.dimensions,):
+                raise ValueError(f'x has wrong number of dimensions {x}')
+
+            y = func(x)
+
+            if not isinstance(y, float):
+                raise TypeError(f'func returned a non-float value {y} for {x}')
+            return y
+
+        self.func = func_safe
         self.dimensions = dimensions
         self.population = population
         self.max_iterations = max_iterations
@@ -37,8 +56,7 @@ class AFSA:
         self.step = step
         self.search_retries = search_retries
 
-        self.fish = self.rng.rand(self.population)
-        self.food = np.array([self.func(fish) for fish in self.fish])
+        self.fish = self.rng.rand(self.population, self.dimensions)
 
     def search(self, fish_idx: int):
         """
@@ -50,11 +68,11 @@ class AFSA:
         :return: None
         """
         for _ in range(self.search_retries):
-            target_x = self.fish[fish_idx] + self.vision * self.rng.uniform()
+            target_x = self.fish[fish_idx] + self.vision * self.rng.uniform(-1, 1)
             # originally the random is between <0,1) but it may be worth exploring
             # how it behaves when allowed the range <-1,1>
 
-            if self.func(target_x) > self.func(fish_idx):
+            if self.func(target_x) > self.func(self.fish[fish_idx]):
                 self.make_step(fish_idx, target_x)
                 return
 
@@ -74,17 +92,20 @@ class AFSA:
         """
 
         fish_in_vision_idx = self.find_nearby_fish_in_vision(fish_idx)
-        fish_in_vision_x = np.take(self.fish, fish_in_vision_idx)
-        x_center = np.mean(fish_in_vision_x)
-        y_center = self.func(x_center)
+        fish_in_vision_x = self.fish[fish_in_vision_idx]
 
-        is_center_better = y_center > self.func(self.fish[fish_idx])
-        is_overcrowded = len(fish_in_vision_idx)/self.population > self.crowding_factor
+        if len(fish_in_vision_x) > 0:
+            x_center = np.mean(fish_in_vision_x, axis=0)
+            y_center = self.func(x_center)
 
-        if is_center_better and not is_overcrowded:
-            self.make_step(fish_idx, x_center)
-        else:
-            self.search(fish_idx)
+            is_center_better = y_center > self.func(self.fish[fish_idx])
+            is_overcrowded = len(fish_in_vision_idx) / self.population > self.crowding_factor
+
+            if is_center_better and not is_overcrowded:
+                self.make_step(fish_idx, x_center)
+                return
+
+        self.search(fish_idx)
 
     def follow(self, fish_idx: int):
         """
@@ -99,9 +120,9 @@ class AFSA:
         own_y = self.func(self.fish[fish_idx])
 
         fish_in_vision_idx = self.find_nearby_fish_in_vision(fish_idx)
-        fish_in_vision_x = np.take(self.fish, fish_in_vision_idx)
+        fish_in_vision_x = self.fish[fish_in_vision_idx]
         fish_in_vision_y = [self.func(x) for x in fish_in_vision_x]
-        is_overcrowded = len(fish_in_vision_idx)/self.population > self.crowding_factor
+        is_overcrowded = len(fish_in_vision_idx) / self.population > self.crowding_factor
 
         best = own_y
         best_idx = fish_idx
@@ -134,7 +155,7 @@ class AFSA:
         :return:
         """
 
-        self.fish[fish_idx] += self.vision * self.rng.uniform()
+        self.fish[fish_idx] += self.vision * self.rng.uniform(-1, 1)
 
     def find_nearby_fish_in_vision(self, fish_idx) -> ArrayLike:
         """
@@ -143,8 +164,9 @@ class AFSA:
         :param fish_idx: the fish in context of which to perform the search
         :return: numpy array of nearby fish indexes, which can contain zero or more entries
         """
-        fish_distances = spatial.distance.cdist(self.fish[fish_idx].reshape((-1, self.dimensions-1)),
-                                                self.fish.reshape(-1, self.dimensions-1))
+        fish_distances = spatial.distance.cdist(
+            np.array([self.fish[fish_idx]]),
+            self.fish)
         fish_distances = fish_distances.reshape(-1, 1)
         fish_distances[fish_idx] = self.vision
 
@@ -160,8 +182,8 @@ class AFSA:
         """
         current_x = self.fish[fish_idx]
 
-        new_x = self.fish[fish_idx] + ((destination_x - current_x)/np.linalg.norm(destination_x - current_x)) \
-            * self.step * self.rng.uniform()
+        new_x = self.fish[fish_idx] + ((destination_x - current_x) / np.linalg.norm(destination_x - current_x)) \
+                * self.step * self.rng.uniform(-1, 1)
 
         self.fish[fish_idx] = new_x
 

@@ -9,7 +9,7 @@ class TestAFSA(TestCase):
     def setUp(self):
         self.afsa = AFSA(
             func=lambda x: 2*x,
-            dimensions=2,
+            dimensions=1,
             population=1,
             max_iterations=1,
             vision=0.6,
@@ -28,12 +28,12 @@ class TestAFSA(TestCase):
 
     def test_find_nearby_fish_in_vision(self):
         self.afsa.fish = np.array([
-            np.array(0.2),
-            np.array(0.1),
-            np.array(0.0),
-            np.array(0.1),
-            np.array(0.2),
-            np.array(0.3)])
+            [0.2],
+            [0.1],
+            [0.0],
+            [0.1],
+            [0.2],
+            [0.3]])
         self.afsa.vision = 0.3
 
         fishes_in_range = self.afsa.find_nearby_fish_in_vision(2)
@@ -41,15 +41,15 @@ class TestAFSA(TestCase):
 
     def test_find_nearby_fish_in_vision_multidim(self):
         self.afsa.fish = np.array([
-            np.array([0.2, 0.2]),
-            np.array([0.1, 0.1]),
-            np.array([0.0, 0.0]),
-            np.array([0.1, 0.1]),
-            np.array([0.2, 0.2]),
-            np.array([0.3, 0.3])
+            [0.2, 0.2],
+            [0.1, 0.1],
+            [0.0, 0.0],
+            [0.1, 0.1],
+            [0.2, 0.2],
+            [0.3, 0.3]
         ])
         self.afsa.vision = 0.3
-        self.afsa.dimensions = 3
+        self.afsa.dimensions = 2
         
         fishes_in_range = self.afsa.find_nearby_fish_in_vision(2)
         np.testing.assert_array_equal(np.array([0, 1, 3, 4]), fishes_in_range)
@@ -59,7 +59,7 @@ class TestAFSA(TestCase):
         self.afsa.rng.uniform = Mock(return_value=0.2)
         self.afsa.make_step = Mock()
         self.afsa.swim = Mock()
-        self.afsa.fish = np.array([0.0])
+        self.afsa.fish = np.array([[0.0]])
         self.afsa.vision = 0.3
         self.afsa.func = lambda x: 2*x
 
@@ -72,10 +72,10 @@ class TestAFSA(TestCase):
         self.afsa.make_step = Mock()
         self.afsa.search = Mock()
         self.afsa.fish = np.array([
-            np.array([0.0]),
-            np.array([0.1]),
-            np.array([0.2]),
-            np.array([0.4])
+            [0.0],
+            [0.1],
+            [0.2],
+            [0.4]
         ])
         self.afsa.vision = 0.4
         self.afsa.func = lambda x: 2 * x
@@ -92,13 +92,14 @@ class TestAFSA(TestCase):
         self.afsa.make_step = Mock()
         self.afsa.search = Mock()
         self.afsa.fish = np.array([
-            np.array([0.3]),
-            np.array([0.1]),
-            np.array([0.2]),
-            np.array([0.4])
+            [0.3, 1],
+            [0.1, 1],
+            [0.2, 1],
+            [0.4, 1]
         ])
+        self.afsa.dimensions = 2
         self.afsa.vision = 0.4
-        self.afsa.func = lambda x: 2 * x
+        self.afsa.func = lambda x: 2 * x[0]
         self.afsa.population = len(self.afsa.fish)
 
         self.afsa.swarm(0)
@@ -110,10 +111,10 @@ class TestAFSA(TestCase):
         self.afsa.make_step = Mock()
         self.afsa.search = Mock()
         self.afsa.fish = np.array([
-            np.array([0.1]),
-            np.array([0.1]),
-            np.array([0.1]),
-            np.array([0.3])
+            [0.1],
+            [0.1],
+            [0.1],
+            [0.3]
         ])
         self.afsa.vision = 0.4
         self.afsa.func = lambda x: 2 * x
