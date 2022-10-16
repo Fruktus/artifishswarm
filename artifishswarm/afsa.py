@@ -1,4 +1,3 @@
-import random
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy import spatial
@@ -27,8 +26,7 @@ class AFSA:
         :param search_retries: how many times will the fish search for the food during search behavior
         :param rand_seed: seed for the random number generator
         """
-        random.seed(rand_seed)
-        np.random.seed(rand_seed)
+        self.rng = np.random.RandomState(rand_seed)
 
         self.func = func
         self.dimensions = dimensions
@@ -39,7 +37,7 @@ class AFSA:
         self.step = step
         self.search_retries = search_retries
 
-        self.fish = np.random.rand(self.population)
+        self.fish = self.rng.rand(self.population)
         self.food = np.array([self.func(fish) for fish in self.fish])
 
     def search(self, fish_idx: int):
@@ -52,7 +50,7 @@ class AFSA:
         :return: None
         """
         for _ in range(self.search_retries):
-            target_x = self.fish[fish_idx] + self.vision * random.random()
+            target_x = self.fish[fish_idx] + self.vision * self.rng.uniform()
             # originally the random is between <0,1) but it may be worth exploring
             # how it behaves when allowed the range <-1,1>
 
@@ -117,7 +115,6 @@ class AFSA:
         else:
             self.search(fish_idx)
 
-
     def leap(self, fish_idx: int):
         """
         TODO
@@ -137,7 +134,7 @@ class AFSA:
         :return:
         """
 
-        self.fish[fish_idx] += self.vision * random.random()
+        self.fish[fish_idx] += self.vision * self.rng.uniform()
 
     def find_nearby_fish_in_vision(self, fish_idx) -> ArrayLike:
         """
@@ -164,7 +161,7 @@ class AFSA:
         current_x = self.fish[fish_idx]
 
         new_x = self.fish[fish_idx] + ((destination_x - current_x)/np.linalg.norm(destination_x - current_x)) \
-            * self.step * random.random()
+            * self.step * self.rng.uniform()
 
         self.fish[fish_idx] = new_x
 
