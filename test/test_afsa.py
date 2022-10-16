@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import patch, Mock
+from unittest.mock import Mock
 import numpy as np
 
 from artifishswarm import AFSA
@@ -18,9 +18,9 @@ class TestAFSA(TestCase):
             search_retries=3
         )
 
-    @patch('artifishswarm.afsa.random')
-    def test_swimming(self, random):
-        random.random = Mock(return_value=0.2)
+    def test_swimming(self, ):
+        self.afsa.rng = Mock()
+        self.afsa.rng.uniform = Mock(return_value=0.2)
 
         self.afsa.fish = [np.array(0.1)]
         self.afsa.swim(0)
@@ -54,9 +54,9 @@ class TestAFSA(TestCase):
         fishes_in_range = self.afsa.find_nearby_fish_in_vision(2)
         np.testing.assert_array_equal(np.array([0, 1, 3, 4]), fishes_in_range)
 
-    @patch('artifishswarm.afsa.random')
-    def test_search(self, random):
-        random.random = Mock(return_value=0.2)
+    def test_search(self):
+        self.afsa.rng = Mock()
+        self.afsa.rng.uniform = Mock(return_value=0.2)
         self.afsa.make_step = Mock()
         self.afsa.swim = Mock()
         self.afsa.fish = np.array([0.0])
