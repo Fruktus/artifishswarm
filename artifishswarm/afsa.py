@@ -1,6 +1,8 @@
 import numpy as np
+import pandas as pd
 from numpy.typing import ArrayLike
 from scipy import spatial
+from tqdm import tqdm
 
 
 class AFSA:
@@ -13,7 +15,7 @@ class AFSA:
     def __init__(self, func, dimensions: int, population: int,
                  max_iterations: int, vision: float,
                  crowding_factor: float, step: float,
-                 search_retries: int, rand_seed=None):
+                 search_retries: int, high: int = 1, low: int = 0, save_history: bool = False, rand_seed=None):
         """
         Initialization of artificial fish swarm algorithm.
 
@@ -26,6 +28,10 @@ class AFSA:
             (compared with amount of fish/population)
         :param step: step length factor, used to calculate the distance of the fish movement
         :param search_retries: how many times will the fish search for the food during search behavior
+        :param high: the upper limit for fish location initialization
+        :param low: the lower limit for fish location initialization
+        :param save_history: if specified, every iteration's state will be stored and available later through
+            get_history()
         :param rand_seed: seed for the random number generator
         """
         if not callable(func):
@@ -55,8 +61,11 @@ class AFSA:
         self.crowding_factor = crowding_factor
         self.step = step
         self.search_retries = search_retries
+        self.history = pd.DataFrame()
+        self.save_history = save_history
+        self.result = None
 
-        self.fish = self.rng.rand(self.population, self.dimensions)
+        self.fish = self.rng.uniform(low=low, high=high, size=population*dimensions).reshape((population, dimensions))
 
     def search(self, fish_idx: int):
         """
@@ -102,10 +111,9 @@ class AFSA:
             is_overcrowded = len(fish_in_vision_idx) / self.population > self.crowding_factor
 
             if is_center_better and not is_overcrowded:
-                self.make_step(fish_idx, x_center)
-                return
+                return x_center, y_center
 
-        self.search(fish_idx)
+        return None, None
 
     def follow(self, fish_idx: int):
         """
@@ -124,17 +132,17 @@ class AFSA:
         fish_in_vision_y = [self.func(x) for x in fish_in_vision_x]
         is_overcrowded = len(fish_in_vision_idx) / self.population > self.crowding_factor
 
-        best = own_y
+        best_y = own_y
         best_idx = fish_idx
         for food_idx in range(len(fish_in_vision_y)):
-            if fish_in_vision_y[food_idx] > best:
-                best = fish_in_vision_y[food_idx]
+            if fish_in_vision_y[food_idx] > best_y:
+                best_y = fish_in_vision_y[food_idx]
                 best_idx = food_idx
 
         if best_idx != fish_idx and not is_overcrowded:
-            self.make_step(fish_idx, fish_in_vision_x[best_idx])
+            return self.fish[best_idx], best_y
         else:
-            self.search(fish_idx)
+            return None, None
 
     def leap(self, fish_idx: int):
         """
@@ -155,7 +163,7 @@ class AFSA:
         :return:
         """
 
-        self.fish[fish_idx] += self.vision * self.rng.uniform(-1, 1)
+        self.fish[fish_idx] += self.vision * self.rng.uniform(-1, 1, self.dimensions)
 
     def find_nearby_fish_in_vision(self, fish_idx) -> ArrayLike:
         """
@@ -183,7 +191,7 @@ class AFSA:
         current_x = self.fish[fish_idx]
 
         new_x = self.fish[fish_idx] + ((destination_x - current_x) / np.linalg.norm(destination_x - current_x)) \
-                * self.step * self.rng.uniform(-1, 1)
+                * self.step * self.rng.uniform(0, 1)
 
         self.fish[fish_idx] = new_x
 
@@ -193,7 +201,26 @@ class AFSA:
 
         :return:
         """
-        pass
+        for fish_idx in range(self.population):
+            x_s, y_s = self.swarm(fish_idx)
+            x_f, y_f = self.follow(fish_idx)
+
+            if y_s and y_s > self.func(self.fish[fish_idx]):
+                self.make_step(fish_idx=fish_idx, destination_x=x_s)
+                continue
+
+            if y_f and y_f > self.func(self.fish[fish_idx]):
+                self.make_step(fish_idx=fish_idx, destination_x=x_f)
+                continue
+
+            self.search(fish_idx=fish_idx)
+
+    def get_history(self) -> pd.DataFrame:
+        """Returns saved fish state history over iterations if save_history was set to true"""
+        return self.history
+
+    def get_result(self) -> ArrayLike:
+        return self.result
 
     def run(self):
         """
@@ -201,9 +228,15 @@ class AFSA:
 
         :return: TODO describe properly - returns solution
         """
-        for epoch in range(self.max_iterations):
-            for fish_idx in range(self.population):
-                self.swarm(fish_idx)
-                self.follow(fish_idx)
 
-        return self.fish  # TODO verify whether this is the proper way to return solution
+        self.history = pd.DataFrame()
+        self.result = None
+        for epoch in tqdm(range(self.max_iterations)):
+            if self.save_history:
+                df = pd.DataFrame(self.fish)
+                df['epoch'] = epoch
+                self.history = pd.concat([self.history, df], ignore_index=True)
+            self.iteration()
+
+        self.result = self.fish
+        return self.result  # TODO verify whether this is the proper way to return solution
