@@ -78,15 +78,13 @@ class TestAFSA(TestCase):
             [0.4]
         ])
         self.afsa.vision = 0.4
-        self.afsa.func = lambda x: 2 * x
+        self.afsa.func = lambda x: 2 * float(x)
         self.afsa.population = len(self.afsa.fish)
 
-        self.afsa.swarm(0)
+        x_s, y_s = self.afsa.swarm(0)
 
-        self.afsa.make_step.assert_called_once()
-        self.assertEqual(0, self.afsa.make_step.call_args[0][0])
-        np.testing.assert_almost_equal(self.afsa.make_step.call_args[0][1], 0.15)
-        self.afsa.search.assert_not_called()
+        np.testing.assert_almost_equal(x_s, 0.15)
+        np.testing.assert_almost_equal(y_s, 0.3)
 
     def test_swarm_worse(self):
         self.afsa.make_step = Mock()
@@ -102,10 +100,9 @@ class TestAFSA(TestCase):
         self.afsa.func = lambda x: 2 * x[0]
         self.afsa.population = len(self.afsa.fish)
 
-        self.afsa.swarm(0)
-
-        self.afsa.make_step.assert_not_called()
-        self.afsa.search.assert_called_with(0)
+        x_s, y_s = self.afsa.swarm(0)
+        self.assertEqual(None, x_s)
+        self.assertEqual(None, y_s)
 
     def test_follow(self):
         self.afsa.make_step = Mock()
@@ -120,7 +117,7 @@ class TestAFSA(TestCase):
         self.afsa.func = lambda x: 2 * x
         self.afsa.population = len(self.afsa.fish)
 
-        self.afsa.follow(0)
+        x_f, y_f = self.afsa.follow(0)
 
-        self.afsa.make_step.assert_called_once_with(0, 0.3)
-        self.afsa.search.assert_not_called()
+        self.assertEqual(0.1, x_f)
+        self.assertEqual(0.6, y_f)
