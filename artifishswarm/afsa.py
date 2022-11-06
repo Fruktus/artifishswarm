@@ -65,9 +65,9 @@ class AFSA:
         self.save_history = save_history
         self.result = None
 
-        self.fish = self.rng.uniform(low=low, high=high, size=population*dimensions).reshape((population, dimensions))
+        self.fish = self.rng.uniform(low=low, high=high, size=population * dimensions).reshape((population, dimensions))
 
-    def search(self, fish_idx: int):
+    def prey(self, fish_idx: int):
         """
         Searching Behavior - For fish in position Xi examine the surrounding area within vision.
         Assume that Yi, Yj are values of the optimised function for Xi, Xj.
@@ -78,14 +78,14 @@ class AFSA:
         """
         for _ in range(self.search_retries):
             target_x = self.fish[fish_idx] + self.vision * self.rng.uniform(-1, 1)
-            # originally the random is between <0,1) but it may be worth exploring
-            # how it behaves when allowed the range <-1,1>
+            # originally the random is between [0,1) but it may be worth exploring
+            # how it behaves when allowed the range [-1,1]
 
-            if self.func(target_x) > self.func(self.fish[fish_idx]):
-                self.make_step(fish_idx, target_x)
-                return
+            target_y = self.func(target_x)
+            if target_y > self.func(self.fish[fish_idx]):
+                return target_x, target_y
 
-        self.swim(fish_idx)
+        return None, None
 
     def swarm(self, fish_idx: int):
         """
@@ -155,7 +155,7 @@ class AFSA:
         """
         pass
 
-    def swim(self, fish_idx: int):
+    def move(self, fish_idx: int):
         """
         Swimming Behavior - swim in the randomly chosen direction.
 
@@ -180,20 +180,21 @@ class AFSA:
 
         return np.where(fish_distances < self.vision)[0]
 
-    def make_step(self, fish_idx: int, destination_x: ArrayLike):
+    def make_step(self, fish_idx: int, visual_x: ArrayLike):
         """
         Moves the fish towards the distance (in place), takes the modifiers into account.
 
         :param fish_idx: index of the fish to move
-        :param destination_x: the destination x position
+        :param visual_x: the visual x position, the fish moves towards this point
         :return:
         """
         current_x = self.fish[fish_idx]
 
-        new_x = self.fish[fish_idx] + ((destination_x - current_x) / np.linalg.norm(destination_x - current_x)) \
-                * self.step * self.rng.uniform(0, 1)
+        diff_x = visual_x - current_x
+        direction = diff_x / np.linalg.norm(diff_x)
+        destination_x = current_x + direction * self.step * self.rng.uniform(0, 1)
 
-        self.fish[fish_idx] = new_x
+        self.fish[fish_idx] = destination_x
 
     def iteration(self):
         """
@@ -204,16 +205,21 @@ class AFSA:
         for fish_idx in range(self.population):
             x_s, y_s = self.swarm(fish_idx)
             x_f, y_f = self.follow(fish_idx)
+            x_p, y_p = self.prey(fish_idx)
 
             if y_s and y_s > self.func(self.fish[fish_idx]):
-                self.make_step(fish_idx=fish_idx, destination_x=x_s)
+                self.make_step(fish_idx=fish_idx, visual_x=x_s)
                 continue
 
             if y_f and y_f > self.func(self.fish[fish_idx]):
-                self.make_step(fish_idx=fish_idx, destination_x=x_f)
+                self.make_step(fish_idx=fish_idx, visual_x=x_f)
                 continue
 
-            self.search(fish_idx=fish_idx)
+            if y_p and y_p > self.func(self.fish[fish_idx]):
+                self.make_step(fish_idx=fish_idx, visual_x=x_p)
+                continue
+
+            self.move(fish_idx)
 
     def get_history(self) -> pd.DataFrame:
         """Returns saved fish state history over iterations if save_history was set to true"""

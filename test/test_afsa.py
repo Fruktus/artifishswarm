@@ -8,7 +8,7 @@ from artifishswarm import AFSA
 class TestAFSA(TestCase):
     def setUp(self):
         self.afsa = AFSA(
-            func=lambda x: 2*x,
+            func=lambda x: 2 * x[0],
             dimensions=1,
             population=1,
             max_iterations=1,
@@ -23,7 +23,7 @@ class TestAFSA(TestCase):
         self.afsa.rng.uniform = Mock(return_value=0.2)
 
         self.afsa.fish = [np.array(0.1)]
-        self.afsa.swim(0)
+        self.afsa.move(0)
         self.assertEqual(0.1 + 0.6 * 0.2, self.afsa.fish[0])
 
     def test_find_nearby_fish_in_vision(self):
@@ -58,19 +58,20 @@ class TestAFSA(TestCase):
         self.afsa.rng = Mock()
         self.afsa.rng.uniform = Mock(return_value=0.2)
         self.afsa.make_step = Mock()
-        self.afsa.swim = Mock()
+        self.afsa.move = Mock()
         self.afsa.fish = np.array([[0.0]])
         self.afsa.vision = 0.3
-        self.afsa.func = lambda x: 2*x
 
-        self.afsa.search(0)
+        x, y = self.afsa.prey(0)
 
-        self.afsa.make_step.assert_called_with(0, 0.06)
-        self.afsa.swim.assert_not_called()
+        self.afsa.make_step.assert_not_called()
+        self.afsa.move.assert_not_called()
+
+        self.assertEqual([0.06], x)
 
     def test_swarm_better(self):
         self.afsa.make_step = Mock()
-        self.afsa.search = Mock()
+        self.afsa.prey = Mock()
         self.afsa.fish = np.array([
             [0.0],
             [0.1],
@@ -78,7 +79,6 @@ class TestAFSA(TestCase):
             [0.4]
         ])
         self.afsa.vision = 0.4
-        self.afsa.func = lambda x: 2 * float(x)
         self.afsa.population = len(self.afsa.fish)
 
         x_s, y_s = self.afsa.swarm(0)
@@ -88,7 +88,7 @@ class TestAFSA(TestCase):
 
     def test_swarm_worse(self):
         self.afsa.make_step = Mock()
-        self.afsa.search = Mock()
+        self.afsa.prey = Mock()
         self.afsa.fish = np.array([
             [0.3, 1],
             [0.1, 1],
@@ -97,7 +97,6 @@ class TestAFSA(TestCase):
         ])
         self.afsa.dimensions = 2
         self.afsa.vision = 0.4
-        self.afsa.func = lambda x: 2 * x[0]
         self.afsa.population = len(self.afsa.fish)
 
         x_s, y_s = self.afsa.swarm(0)
@@ -106,7 +105,7 @@ class TestAFSA(TestCase):
 
     def test_follow(self):
         self.afsa.make_step = Mock()
-        self.afsa.search = Mock()
+        self.afsa.prey = Mock()
         self.afsa.fish = np.array([
             [0.1],
             [0.1],
@@ -114,7 +113,6 @@ class TestAFSA(TestCase):
             [0.3]
         ])
         self.afsa.vision = 0.4
-        self.afsa.func = lambda x: 2 * x
         self.afsa.population = len(self.afsa.fish)
 
         x_f, y_f = self.afsa.follow(0)
