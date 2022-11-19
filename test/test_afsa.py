@@ -126,6 +126,6 @@ class TestAFSA(TestCase):
         self.afsa.fish = np.array([0.0])
         self.afsa.step = 1.0
 
-        self.afsa.make_step(0, 1.0)
+        self.afsa.make_step(0, np.array([1.0]))
 
         self.assertEqual(0.2, self.afsa.fish[0])

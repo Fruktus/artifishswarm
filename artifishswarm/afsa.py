@@ -63,7 +63,7 @@ class AFSA:
         self.search_retries = search_retries
         self.history = pd.DataFrame()
         self.save_history = save_history
-        self.result = None
+        self.best_y = float('-inf')
 
         self.fish = self.rng.uniform(low=low, high=high, size=population * dimensions).reshape((population, dimensions))
 
@@ -162,7 +162,6 @@ class AFSA:
         :param fish_idx: the index of fish which performs swim behavior
         :return:
         """
-
         self.fish[fish_idx] += self.vision * self.rng.uniform(-1, 1, self.dimensions)
 
     def find_nearby_fish_in_vision(self, fish_idx) -> ArrayLike:
@@ -188,6 +187,9 @@ class AFSA:
         :param visual_x: the visual x position, the fish moves towards this point
         :return:
         """
+        dest_y = self.func(visual_x)
+        self.best_y = max(dest_y, self.best_y)
+
         current_x = self.fish[fish_idx]
 
         diff_x = visual_x - current_x
@@ -232,17 +234,18 @@ class AFSA:
         """
         Executes the algorithm
 
-        :return: TODO describe properly - returns solution
+        :return: returns the best (highest) value found by the fish swarm
         """
 
         self.history = pd.DataFrame()
-        self.result = None
+        self.best_y = float('-inf')
+
         for epoch in tqdm(range(self.max_iterations)):
             if self.save_history:
                 df = pd.DataFrame(self.fish)
                 df['epoch'] = epoch
                 self.history = pd.concat([self.history, df], ignore_index=True)
+            
             self.iteration()
 
-        self.result = self.fish
-        return self.result  # TODO verify whether this is the proper way to return solution
+        return self.best_y
