@@ -119,3 +119,13 @@ class TestAFSA(TestCase):
 
         self.assertEqual(0.1, x_f)
         self.assertEqual(0.6, y_f)
+
+    def test_make_step(self):
+        self.afsa.rng = Mock()
+        self.afsa.rng.uniform = Mock(return_value=0.2)
+        self.afsa.fish = np.array([0.0])
+        self.afsa.step = 1.0
+
+        self.afsa.make_step(0, np.array([1.0]))
+
+        self.assertEqual(0.2, self.afsa.fish[0])

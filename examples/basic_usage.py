@@ -1,3 +1,4 @@
+# Basic example which shows how the afsa algorithm can be ran for simple quadratic function
 import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
