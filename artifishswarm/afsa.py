@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 import pandas as pd
 from numpy.typing import ArrayLike
@@ -12,10 +14,12 @@ class AFSA:
     y - the value that optimised function self.func takes for given x
     """
 
-    def __init__(self, func, dimensions: int, population: int,
+    def __init__(self, *, func, dimensions: int, population: int,
                  max_iterations: int, vision: float,
                  crowding_factor: float, step: float,
-                 search_retries: int, high: int = 1, low: int = 0, save_history: bool = False, rand_seed=None):
+                 search_retries: int, high: int = 1,
+                 low: int = 0, save_history: bool = False, rand_seed=None,
+                 leap_eps: float = 0, leap_scale: float = 10):
         """
         Initialization of artificial fish swarm algorithm.
 
@@ -63,6 +67,9 @@ class AFSA:
         self.search_retries = search_retries
         self.history = pd.DataFrame()
         self.save_history = save_history
+        self.leap_eps = leap_eps
+        self.leap_scale = leap_scale
+        self.best_x = None
         self.best_y = float('-inf')
 
         self.fish = self.rng.uniform(low=low, high=high, size=population * dimensions).reshape((population, dimensions))
@@ -144,16 +151,14 @@ class AFSA:
         else:
             return None, None
 
-    def leap(self, fish_idx: int):
+    def leap(self):
         """
-        TODO
         Helps if the fish get stuck in local extremum.
-        Select few fishes randomly and make them move towards other fishes.
-
-        :param fish_idx: the index of fish which performs the leap behavior
-        :return:
+        Select a fish randomly and make a leap in a random direction.
         """
-        pass
+        selected_fish_idx = self.rng.randint(0, self.population)
+        leap_distances = self.rng.normal(0, self.leap_scale, self.dimensions)
+        self.fish[selected_fish_idx] += leap_distances
 
     def move(self, fish_idx: int):
         """
@@ -188,7 +193,9 @@ class AFSA:
         :return:
         """
         dest_y = self.func(visual_x)
-        self.best_y = max(dest_y, self.best_y)
+        if dest_y > self.best_y:
+            self.best_x = visual_x
+            self.best_y = dest_y
 
         current_x = self.fish[fish_idx]
 
@@ -197,6 +204,7 @@ class AFSA:
         destination_x = current_x + direction * self.step * self.rng.uniform(0, 1)
 
         self.fish[fish_idx] = destination_x
+        return dest_y
 
     def iteration(self):
         """
@@ -204,33 +212,35 @@ class AFSA:
 
         :return:
         """
+        iter_best_y = float('-inf')
         for fish_idx in range(self.population):
             x_s, y_s = self.swarm(fish_idx)
             x_f, y_f = self.follow(fish_idx)
             x_p, y_p = self.prey(fish_idx)
 
             if y_s and y_s > self.func(self.fish[fish_idx]):
-                self.make_step(fish_idx=fish_idx, visual_x=x_s)
+                y = self.make_step(fish_idx=fish_idx, visual_x=x_s)
+                iter_best_y = max(iter_best_y, y)
                 continue
 
             if y_f and y_f > self.func(self.fish[fish_idx]):
-                self.make_step(fish_idx=fish_idx, visual_x=x_f)
+                y = self.make_step(fish_idx=fish_idx, visual_x=x_f)
+                iter_best_y = max(iter_best_y, y)
                 continue
 
             if y_p and y_p > self.func(self.fish[fish_idx]):
-                self.make_step(fish_idx=fish_idx, visual_x=x_p)
+                y = self.make_step(fish_idx=fish_idx, visual_x=x_p)
+                iter_best_y = max(iter_best_y, y)
                 continue
 
             self.move(fish_idx)
+        return iter_best_y
 
     def get_history(self) -> pd.DataFrame:
         """Returns saved fish state history over iterations if save_history was set to true"""
         return self.history
 
-    def get_result(self) -> ArrayLike:
-        return self.result
-
-    def run(self):
+    def run(self) -> None:
         """
         Executes the algorithm
 
@@ -238,14 +248,19 @@ class AFSA:
         """
 
         self.history = pd.DataFrame()
+        self.best_x = None
         self.best_y = float('-inf')
 
+        last_iter_best_y = float('-inf')
         for epoch in tqdm(range(self.max_iterations)):
             if self.save_history:
                 df = pd.DataFrame(self.fish)
                 df['epoch'] = epoch
                 self.history = pd.concat([self.history, df], ignore_index=True)
-            
-            self.iteration()
 
-        return self.best_y
+            iter_best_y = self.iteration()
+
+            if abs(last_iter_best_y - iter_best_y) < self.leap_eps:
+                self.leap()
+
+            last_iter_best_y = iter_best_y
