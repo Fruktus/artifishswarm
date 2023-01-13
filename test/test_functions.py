@@ -2,11 +2,19 @@ from unittest import TestCase
 
 import numpy as np
 
-from artifishswarm.functions import rastrigin, rosenbrock, beale, bukin6, \
+from artifishswarm.functions import ackley, rastrigin, rosenbrock, beale, bukin6, \
     levi13, himmelblau, eggholder
 
 
 class TestFunctions(TestCase):
+    def test_ackley(self):
+        self.assertAlmostEqual(0.0, ackley([0]))
+        self.assertAlmostEqual(0.0, ackley([0, 0]))
+        self.assertAlmostEqual(0.0, ackley([0, 0, 0]))
+
+        self.assertNotAlmostEqual(0.0, ackley([1]))
+        self.assertNotEqual(0.0, ackley([1]))
+
     def test_rastrigin(self):
         self.assertAlmostEqual(0.0, rastrigin([0]))
         self.assertAlmostEqual(0.0, rastrigin([0, 0]))
