@@ -72,7 +72,7 @@ class AFSA:
         self.save_history = save_history
         self.leap_eps = leap_eps
         self.leap_scale = leap_scale
-        self.comparator = lambda a, b: a > b if optimize_towards == 'max' else lambda a, b: a < b
+        self.comparator = lambda a, b: a > b if optimize_towards == 'max' else a < b
         self.best_x = None
         self.best_y = float('-inf') if self.comparator(float('inf'), float('-inf')) else float('inf')
         self.verbose = verbose

@@ -8,10 +8,10 @@ from artifishswarm.functions import ackley, beale, bukin6, eggholder, himmelblau
 
 afsa_params = {
     'func': None,
-    'dimensions': 2,  # our function takes one value and returns one value
+    'dimensions': 2,  # all of our functions can work with 2 dimensions
     'population': 100,  # other parameters chosen empirically
     'max_iterations': 500,
-    'vision': 0.5,
+    'vision': 0.02,
     'crowding_factor': 0.5,
     'step': 0.01,
     'search_retries': 10,
@@ -21,14 +21,14 @@ afsa_params = {
 }
 
 functions = {
-    'ackley': ackley,
-    'beale': beale,
-    'bukin6': bukin6,
-    'eggholder': eggholder,
-    'himmelblau': himmelblau,
-    'levi13': levi13,
-    'rastrigin': rastrigin,
-    'rosenbrock': rosenbrock
+    'ackley': (ackley, [0.0, 0.0], 0.0),
+    'beale': (beale, [3.0, 0.5], 0.0),
+    'bukin6': (bukin6, [-10.0, 1.0], 0.0),
+    'eggholder': (eggholder, [512.0, 404.2319], -959.6407),
+    'himmelblau': (himmelblau, [-2.805118, 3.131312], 0.0),
+    'levi13': (levi13, [1.0, 1.0], 0.0),
+    'rastrigin': (rastrigin, [0.0, 0.0], 0.0),
+    'rosenbrock': (rosenbrock, [1.0, 1.0], 0.0)
 }
 
 def run_experiment(afsa_params: dict, num_tries=10):
@@ -46,9 +46,13 @@ def run_experiment(afsa_params: dict, num_tries=10):
 
 def worker(job_params):
     func_name = job_params.pop('func_name')
+    func_params = job_params['func']
+    job_params['func'] = func_params[0]
+    func_bext_x = func_params[1]
+    func_best_y = func_params[2]
 
     res_x, res_y = run_experiment(job_params)
-    print(f'{func_name} best_x: {np.average(res_x, axis=0)} std: {np.std(res_x, axis=0)}, best_y: {np.average(res_y)} std: {np.std(res_y)} actual_y: 0.0')
+    print(f'{func_name} best_x: {np.average(res_x, axis=0)} std: {np.std(res_x, axis=0)} (actual: {func_bext_x}), best_y: {np.average(res_y)} std: {np.std(res_y)} (actual: {func_best_y})')
 
 
 def main():
