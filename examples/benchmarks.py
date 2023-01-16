@@ -2,6 +2,8 @@ from copy import copy
 import numpy as np
 from multiprocessing import Pool
 
+import pandas as pd
+
 from artifishswarm import AFSA
 from artifishswarm.functions import ackley, beale, bukin6, eggholder, himmelblau, levi13, rastrigin, rosenbrock
 
@@ -15,8 +17,8 @@ afsa_params = {
     'crowding_factor': 0.5,
     'step': 0.01,
     'search_retries': 10,
-    'low': -2,
-    'high': 2,
+    'low': -5,
+    'high': 5,
     'save_history': False,
 }
 
@@ -31,13 +33,15 @@ functions = {
     'rosenbrock': (rosenbrock, [1.0, 1.0], 0.0)
 }
 
-def run_experiment(afsa_params: dict, num_tries=10):
+def run_experiment(func_name: str, afsa_params: dict, num_tries=10):
     optimum_x = []
     optimum_y = []
 
-    for _ in range(num_tries):
+    for i in range(num_tries):
         afsa = AFSA(**afsa_params)
         afsa.run()
+        df = pd.DataFrame(data=afsa.fish, columns=['x', 'y'])
+        df.to_csv(f"data/{func_name}_{i}.csv", sep=',')
         optimum_x.append(afsa.result[0])
         optimum_y.append(afsa.result[1])
 
@@ -51,7 +55,7 @@ def worker(job_params):
     func_bext_x = func_params[1]
     func_best_y = func_params[2]
 
-    res_x, res_y = run_experiment(job_params)
+    res_x, res_y = run_experiment(func_name, job_params)
     print(f'{func_name} best_x: {np.average(res_x, axis=0)} std: {np.std(res_x, axis=0)} (actual: {func_bext_x}), best_y: {np.average(res_y)} std: {np.std(res_y)} (actual: {func_best_y})')
 
 
@@ -64,7 +68,7 @@ def main():
         job['optimize_towards'] = 'min'
         jobs.append(job)
 
-    with Pool(processes=len(functions)) as pool:  # The experiments are independent so we can parallelize them 
+    with Pool(processes=len(functions)) as pool:  # The experiments are independent so we can parallelize them
         pool.map(worker, jobs)
 
 if __name__ == '__main__':
