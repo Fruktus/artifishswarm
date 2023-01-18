@@ -3,11 +3,14 @@ import numpy as np
 
 def ackley(x):
     x = np.array(x)
-    a = -20.0
+    a = 20.0
     b = 0.2
     c = 2.0 * np.pi
     d = len(x)
-    return -a * np.exp(-b * np.sqrt((1/d) * np.sum(np.power(x, 2)))) - np.exp((1/d) * np.sum(np.cos(c * x))) + a + np.exp(1)
+    return -a * np.exp(-b * np.sqrt((1/d) * np.sum(np.power(x, 2)))) \
+        - np.exp((1/d) * np.sum(np.cos(c * x))) \
+        + a \
+        + np.exp(1)
 
 
 def rastrigin(x):
